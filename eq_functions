@@ -1,0 +1,63 @@
+import requests
+from datetime import datetime, timedelta
+
+
+# Create earthquake class for storing data and future functionality
+class Earthquake:
+    def __init__(self, magnitute, location, longitude, latitude, depth, time):
+        self.magnitude = magnitute
+        self.location = location
+        self.longitude = longitude
+        self.latitude = latitude
+        self.depth = depth
+        self.time = time
+        self.name = f"{self.location} | {self.time} | {self.magnitude}"
+
+
+# Function to scrape earthquake data
+def get_major_earthquakes(duration, min_magnitude=5.5, max_magnitude=10.0):
+
+    end_time = datetime.now()
+    start_time = end_time - timedelta(days=duration)
+
+    start_str = start_time.strftime("%Y-%m-%d")
+    end_str = end_time.strftime("%Y-%m-%d")
+
+    url = (
+        f"https://earthquake.usgs.gov/fdsnws/event/1/query?"
+        f"format=geojson"
+        f"&starttime={start_str}"
+        f"&endtime={end_str}"
+        f"&minmagnitude={min_magnitude}"
+        f"&maxmagnitude={max_magnitude}"
+        f"&orderby=magnitude"
+    )
+
+    # Obtain python dict from API GET request
+    response = requests.get(url)
+    data = response.json()
+    return data["features"]
+
+
+# Function to convert dict data into list of earthquake objects for easier use
+def generate_earthquake_data(duration, min_magnitude=5.5, max_magnitude=10.0):
+    quakes = get_major_earthquakes(duration, min_magnitude, max_magnitude)
+
+    earthquakes = []
+
+    for quake in quakes:
+        props = quake["properties"]
+        coords = quake["geometry"]["coordinates"]
+        time = datetime.fromtimestamp(props["time"] / 1000)
+        formatted_time = time.strftime("%d/%m/%Y")
+
+        earthquake = Earthquake(
+            props["mag"],
+            props["place"],
+            coords[0],
+            coords[1],
+            coords[2],
+            formatted_time,
+        )
+        earthquakes.append(earthquake)
+    return earthquakes
