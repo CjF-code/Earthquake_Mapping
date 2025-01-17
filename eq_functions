@@ -1,5 +1,6 @@
 import requests
 from datetime import datetime, timedelta
+import numpy as np
 
 
 # Create earthquake class for storing data and future functionality
@@ -34,7 +35,7 @@ def get_major_earthquakes(duration, min_magnitude=5.5, max_magnitude=10.0):
     )
 
     # Obtain python dict from API GET request
-    response = requests.get(url)
+    response = requests.get(url, verify=False)
     data = response.json()
     return data["features"]
 
@@ -61,3 +62,45 @@ def generate_earthquake_data(duration, min_magnitude=5.5, max_magnitude=10.0):
         )
         earthquakes.append(earthquake)
     return earthquakes
+
+def estimate_affected_population(latitude, longitude, magnitude):
+
+    # Roughly based on magnitude scaling
+    impact_radius = 0.5 * (magnitude - 4)  # ~50km per degree
+    
+    # Estimates based on typical population densities by region
+    population_density = {
+        'Asia': 95,          # people per km^2
+        'Europe': 73,
+        'North America': 25,
+        'South America': 25,
+        'Africa': 45,
+        'Oceania': 5
+    }
+    
+    # Determine region based on coordinates
+    if latitude > 0:
+        if longitude > -30 and longitude < 60:
+            region = 'Europe'
+        elif longitude >= 60:
+            region = 'Asia'
+        else:
+            region = 'North America'
+    else:
+        if longitude > -30 and longitude < 60:
+            region = 'Africa'
+        elif longitude >= 60:
+            region = 'Oceania'
+        else:
+            region = 'South America'
+    
+    # Calculate affected area (in km^2)
+    # Convert degrees to km (roughly 111km per degree)
+    area = np.pi * (impact_radius * 111) ** 2
+    
+    # Calculate affected population
+    density = population_density.get(region, 1)  # default to 50 if region not found
+    affected_pop = int(area * density)
+    
+    return affected_pop
+
