@@ -1,7 +1,7 @@
 import streamlit as st
 import numpy as np
 import pandas as pd
-from datetime import datetime
+from datetime import datetime, timedelta
 import matplotlib.pyplot as plt
 import eq_functions as ef
 
@@ -20,7 +20,8 @@ with st.sidebar:
         value=(4.0, 10.0),
     )
 
-    start_date = st.date_input("Investigation Start Date", value="today")
+    defualt_date = datetime.today() - timedelta(days=30)
+    start_date = st.date_input("Investigation Start Date", value=defualt_date.date())
 
     # Calculate the difference in days between start_date and today
     days_difference = (datetime.today().date() - start_date).days
@@ -49,13 +50,15 @@ earthquake_data = [
         "depth": eq_obj.depth,
         "time": eq_obj.time,
         "name": eq_obj.name,
-        "scale_for_graph": np.exp(eq_obj.magnitude**eq_obj.magnitude),
+        "scale_for_graph": ef.estimate_affected_population(eq_obj.latitude,eq_obj.longitude,eq_obj.magnitude)/30,
         "colour": plt.cm.YlOrRd((eq_obj.magnitude - 4) / (7.5 - 4))[:3],
     }
     for eq_obj in st.session_state.earthquakes
 ]
 
 earthquake_df = pd.DataFrame(earthquake_data)
+
+st.write("*Coloured by magnitude, sized by estimated affected population*")
 
 # Plot earthquake data in interactive map
 st.map(
@@ -75,14 +78,17 @@ requested_earthquake = earthquake_df[
     earthquake_df["name"] == more_info_request
 ].reset_index()
 
+
 # Display of additional information
-col1, col2, spacer = st.columns([2, 2, 1])
+col1, col2 = st.columns([2, 3])
 with col1:
     st.write(f"**Location of earthquake:**")
     st.write(f"**Date of earthquake:**")
     st.write(f"**Magnitude of arthquake:**")
+    st.write(F"**Estimated affected population:**")
 
 with col2:
     st.write(requested_earthquake["location"][0])
     st.write(requested_earthquake["time"][0])
     st.write(f"{requested_earthquake['magnitude'][0]}")
+    st.write(f"{requested_earthquake['scale_for_graph'][0]:,}")
